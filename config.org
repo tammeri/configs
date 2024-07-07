@@ -1,0 +1,296 @@
+#+TITLE: Tammer's Emacs Configuration
+#+AUTHOR: Tammer Ibrahim
+#+STARTUP: overview
+
+This is my Emacs configuration file, in literate programming style (based on
+[[https://blog.thomasheartman.com/posts/configuring-emacs-with-org-mode-and-literate-programming][this tutorial]]). It is primarily geared towards building a comfortable and
+productive environment for documenting and managing Linux systems using Puppet.
+It is organized into various categories with some explanation for configuration
+decisions.
+
+* Dependencies
+
+In addition to a standard release of Emacs, full functionality of this config
+will require working installations of:
+
+  - git
+  - puppet-lint
+  - ispell
+
+* Bootstrap
+
+This configuration is largely orchestrated using the wonderful, functional
+[[https://github.com/radian-software/straight.el][straight.el]]. It requires this bit of emacs-lisp to bootstrap itself.
+
+#+begin_src emacs-lisp
+
+  (defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+#+end_src
+
+* UI
+** General
+
+Emacs is wonderful for its ability to totally transform its user interface to
+fit the needs of its user. Its an incredible example of what programmable
+extensiblity can achieve.
+
+Let's start by reducing some visual complexity and setting a nice font. I'm also
+going to turn off native compilation warnings because they're a visual nusiance,
+and add a git gutter.
+
+#+begin_src emacs-lisp
+
+  ;; reduce visual complexity
+  (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
+  (if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
+  (if (fboundp 'menu-bar-mode) (menu-bar-mode -1))
+
+  ;; use a nice font
+  (add-to-list 'default-frame-alist '(font . "SF Mono-12:weight=medium"))
+
+  ;; line numbers
+  (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+  (add-hook 'text-mode-hook #'display-line-numbers-mode)
+  (add-hook 'markdown-mode-hook #'display-line-numbers-mode)
+
+  ;; silence native compilation warnings
+  (setq native-comp-async-report-warnings nil)
+
+  ;; diminish modes for specific packages
+  (use-package diminish
+    :ensure)
+
+  ;; use a git gutter
+  (use-package git-gutter
+    :diminish
+    :init (global-git-gutter-mode t))
+
+#+end_src
+
+** Modeline
+
+#+begin_src emacs-lisp
+
+  (use-package simple-modeline
+  :init (simple-modeline-mode 1))
+
+#+end_src
+
+** Theme
+
+If you're in the Emacs world, hopefully you've come across [[https://protesilaos.com][prot]] and his
+revolutionary Emacs packages. His approach to creating Emacs themes prioritizes
+readability and usability of the text UI. Critical for a productive environment.
+
+#+begin_src emacs-lisp
+
+  (use-package ef-themes
+  :straight (ef-themes :type git :host github :repo "protesilaos/ef-themes")
+  :ensure
+  :init (ef-themes-select 'ef-dream))
+
+#+end_src
+
+* Settings
+** Usability Enhancements
+
+#+begin_src emacs-lisp
+
+  ;; don't clutter directories with auto-save files
+  (setq backup-directory-alist
+        `(("." . ,(concat user-emacs-directory "backups"))))
+
+  ;; always create a new backup file
+  (setq backup-by-copying t)
+
+  ;; nobody double spaces prose sentances
+  (setq sentence-end-double-space nil)
+
+  ;; org ui
+  (setq org-ellipsis "▼")
+
+  ;; enable line-wrapping for prose
+  (add-hook 'text-mode-hook 'turn-on-auto-fill)
+  (setq-default fill-column 80)
+
+  ;; Unbind Pesky Sleep Button
+  (global-unset-key [(control z)])
+  (global-unset-key [(control x)(control z)])
+
+  ;; insert over selected regions
+  (delete-selection-mode t)
+
+#+end_src
+
+** Utility Packages
+
+#+begin_src emacs-lisp
+
+  (use-package aggressive-indent
+    :init (global-aggressive-indent-mode 1))
+
+  (use-package undo-tree
+    :init (undo-tree-mode t))
+
+  (use-package multiple-cursors
+    :bind ("C-c m" . 'mc/edit-lines))
+
+  (use-package magit
+    
+
+#+end_src
+
+* Functions and Keys
+
+Emacs is short for `Editor MACroS`, and of course key bindings and elisp
+functions are the core enablers of productivity.
+
+** Helper Functions
+
+#+begin_src emacs-lisp
+
+  (defun ti/quit-window ()
+    "Quickly quit buffers"
+    (interactive)
+    (funcall 'quit-window '(KILL-BUFFER get-buffer-window)))
+
+  (defun ti/kill-beginning-of-line ()
+    "Kill to beginning of line like Bash"
+    (interactive)
+    (kill-line 0))
+
+  (defun ti/get-branch-name ()
+    "Get current git branch name"
+    (shell-command-to-string "printf %s \"$(git branch --show-current)\""))
+
+  (defun ti/new-project-folder ()
+    "Create new directory with branch name"
+    (interactive)
+    (dired-create-directory (ti/get-branch-name)))
+
+#+end_src
+
+** Global Bindings
+
+#+begin_src emacs-lisp
+    
+  (bind-keys*
+     ("M-u" . universal-argument) 
+     ("M-<down>" . forward-paragraph)
+     ("M-<up>" . backward-paragraph)
+     ("<f8>" .  save-buffer)
+     ("<f9>" .  switch-to-buffer)
+     ("<f10>" . other-window)
+     ("C-u" . ti/kill-beginning-of-line)
+     ("C-x k" . ti/quit-window))
+
+  ;; required to be specified as a translation
+  (keyboard-translate ?\C-h ?\C-?)
+
+#+end_src
+
+* Tooling
+
+The true essense of Emacs is the wide community of computing enthusiasts who
+extend its functionality.
+
+** Flyspell
+
+Useful for zeroing in on when & where spellcheck should happen. Code from [[https://www.emacswiki.org/emacs/FlySpell][Emacs
+Wiki]].
+
+#+begin_src emacs-lisp
+
+    (defun flyspell-on-for-buffer-type ()
+    "Enable Flyspell appropriately for the major mode of the current
+  buffer. Uses `flyspell-prog-mode' for modes derived from
+  `prog-mode', so only strings and comments get checked. All other
+  buffers get `flyspell-mode' to check all text. If flyspell is
+  already enabled, does nothing."
+    (interactive)
+    (if (not (symbol-value flyspell-mode)) ; if not already on
+  	(progn
+  	  (if (derived-mode-p 'prog-mode)
+  	    (progn
+  	      (message "Flyspell on (code)")
+  	      (flyspell-prog-mode))
+  	    ;; else
+  	    (progn
+  	      (message "Flyspell on (text)")
+  	      (flyspell-mode 1)))
+  	  )))
+
+  (defun flyspell-toggle ()
+    "Turn Flyspell on if it is off, or off if it is on.  When turning on, it uses `flyspell-on-for-buffer-type' so code-vs-text is handled appropriately."
+    (interactive)
+    (if (symbol-value flyspell-mode)
+  	  (progn ; flyspell is on, turn it off
+  	    (message "Flyspell off")
+  	    (flyspell-mode -1))
+  	  ; else - flyspell is off, turn it on
+  	  (flyspell-on-for-buffer-type)))
+
+  (global-set-key (kbd "C-c f") 'flyspell-toggle )
+
+  (add-hook 'find-file-hook 'flyspell-on-for-buffer-type)
+
+#+end_src
+
+** Major Mode Packages
+
+#+begin_src emacs-lisp
+
+  (use-package markdown-mode
+    :init
+    (add-to-list 'auto-mode-alist
+  	     '("\\.\\(?:md\\|markdown\\|mkd\\|mdown\\|mkdn\\|mdwn\\)\\'" . gfm-mode))
+    (add-hook 'gfm-mode-hook
+  	  (setq markdown-list-indent-width 2)))
+
+  (use-package apache-mode)
+
+  (use-package nagios-mode)
+
+  (use-package crontab-mode)
+
+  (use-package systemd)
+
+  (use-package puppet-mode)
+  
+  (use-package flymake-collection)
+
+  (use-package flymake-puppet
+    :init (add-hook puppet-mode-hook 'flymake-puppet-load))
+
+#+end_src
+
+** Eshell
+
+While many system commands are available through Emacs bindings, sometimes of
+course a shell is helpful.
+
+#+begin_src emacs-lisp
+
+  (use-package eshell-toggle
+    :custom
+    (eshell-toggle-size-fraction 3)
+    (eshell-toggle-find-project-root-package 'project)
+    :bind
+    ("<f7>" . eshell-toggle))
+
+#+end_src
