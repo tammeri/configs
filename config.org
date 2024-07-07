@@ -18,27 +18,57 @@ will require working installations of:
   - ispell
 
 * Bootstrap
-
+** straight.el
 This configuration is largely orchestrated using the wonderful, functional
 [[https://github.com/radian-software/straight.el][straight.el]]. It requires this bit of emacs-lisp to bootstrap itself.
 
 #+begin_src emacs-lisp
 
+  ;; disable package.el in favor of straight.el
+  (setq package-enable-at-startup nil)
+
+  ;; for use with native compilation
+  (setq straight-repository-branch "develop")
+
   (defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name
-        "straight/repos/straight.el/bootstrap.el"
-        (or (bound-and-true-p straight-base-dir)
-            user-emacs-directory)))
-      (bootstrap-version 7))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
+  (let ((bootstrap-file
+	 (expand-file-name
+	  "straight/repos/straight.el/bootstrap.el"
+	  (or (bound-and-true-p straight-base-dir)
+	      user-emacs-directory)))
+	(bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+	  (url-retrieve-synchronously
+	   "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+	   'silent 'inhibit-cookies)
+	(goto-char (point-max))
+	(eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+  
+  (straight-use-package 'use-package)
+  (setq straight-use-package-by-default t)
+
+#+end_src
+
+** no-littering
+This gets called early to structure the Emacs local configuration directory.
+
+#+begin_src emacs-lisp
+
+  (use-package no-littering
+    :ensure
+    :config
+    (setq custom-file (no-littering-expand-etc-file-name "custom.el"))
+    ;; navtively set file locks to save to /var/tmp
+    (setq lock-file-name-transforms
+      '(("\\`/.*/\\([^/]+\\)\\'" "/var/tmp/\\1" t)))
+      ;; don't clutter directories with auto-save files
+    (setq backup-directory-alist
+	  `(("." . ,(concat user-emacs-directory "backups"))))
+    ;; always create a new backup file
+    (setq backup-by-copying t))
+
 
 #+end_src
 
@@ -68,17 +98,36 @@ and add a git gutter.
   (add-hook 'text-mode-hook #'display-line-numbers-mode)
   (add-hook 'markdown-mode-hook #'display-line-numbers-mode)
 
+  ;; do horizontal splits by default
+  (setq split-width-threshold nil)
+  (setq split-height-threshold 0)
+
   ;; silence native compilation warnings
-  (setq native-comp-async-report-warnings nil)
+  (setq warning-minimum-level :error)
 
   ;; diminish modes for specific packages
-  (use-package diminish
-    :ensure)
+  (use-package diminish :ensure t)
 
   ;; use a git gutter
   (use-package git-gutter
-    :diminish
-    :init (global-git-gutter-mode t))
+    :init (global-git-gutter-mode +1))
+
+#+end_src
+
+** Mouse
+
+While I mostly use the keyboard for navigation, its handy to reach for the mouse
+on occasion.
+
+#+begin_src emacs-lisp
+
+  (setq scroll-error-top-bottom t)
+  (xterm-mouse-mode 1)
+  (global-set-key [mouse-4] 'next-line)
+  (global-set-key [mouse-5] 'previous-line)
+  (setq mouse-wheel-progressive-speed nil)
+  (setq mouse-wheel-follow-mouse 't)
+  (setq scroll-step 1)
 
 #+end_src
 
@@ -100,9 +149,17 @@ readability and usability of the text UI. Critical for a productive environment.
 #+begin_src emacs-lisp
 
   (use-package ef-themes
-  :straight (ef-themes :type git :host github :repo "protesilaos/ef-themes")
-  :ensure
-  :init (ef-themes-select 'ef-dream))
+    :straight (ef-themes :type git :host github :repo "protesilaos/ef-themes")
+    :ensure
+    :init
+    (defun ti/ef-themes-custom-faces ()
+      (ef-themes-with-colors
+       (custom-set-faces
+	`(git-gutter:added ((,c :foreground ,bg-added)))
+	`(git-gutter:deleted ((,c :foreground ,bg-removed)))
+	`(git-gutter:modified ((,c :foreground ,bg-changed))))))
+    (add-hook 'ef-themes-post-load-hook #'ti/ef-themes-custom-faces)
+    (ef-themes-select 'ef-dream))
 
 #+end_src
 
@@ -111,18 +168,8 @@ readability and usability of the text UI. Critical for a productive environment.
 
 #+begin_src emacs-lisp
 
-  ;; don't clutter directories with auto-save files
-  (setq backup-directory-alist
-        `(("." . ,(concat user-emacs-directory "backups"))))
-
-  ;; always create a new backup file
-  (setq backup-by-copying t)
-
   ;; nobody double spaces prose sentances
   (setq sentence-end-double-space nil)
-
-  ;; org ui
-  (setq org-ellipsis "▼")
 
   ;; enable line-wrapping for prose
   (add-hook 'text-mode-hook 'turn-on-auto-fill)
@@ -150,7 +197,7 @@ readability and usability of the text UI. Critical for a productive environment.
   (use-package multiple-cursors
     :bind ("C-c m" . 'mc/edit-lines))
 
-  (use-package magit
+  (use-package magit)
     
 
 #+end_src
@@ -209,48 +256,6 @@ functions are the core enablers of productivity.
 The true essense of Emacs is the wide community of computing enthusiasts who
 extend its functionality.
 
-** Flyspell
-
-Useful for zeroing in on when & where spellcheck should happen. Code from [[https://www.emacswiki.org/emacs/FlySpell][Emacs
-Wiki]].
-
-#+begin_src emacs-lisp
-
-    (defun flyspell-on-for-buffer-type ()
-    "Enable Flyspell appropriately for the major mode of the current
-  buffer. Uses `flyspell-prog-mode' for modes derived from
-  `prog-mode', so only strings and comments get checked. All other
-  buffers get `flyspell-mode' to check all text. If flyspell is
-  already enabled, does nothing."
-    (interactive)
-    (if (not (symbol-value flyspell-mode)) ; if not already on
-  	(progn
-  	  (if (derived-mode-p 'prog-mode)
-  	    (progn
-  	      (message "Flyspell on (code)")
-  	      (flyspell-prog-mode))
-  	    ;; else
-  	    (progn
-  	      (message "Flyspell on (text)")
-  	      (flyspell-mode 1)))
-  	  )))
-
-  (defun flyspell-toggle ()
-    "Turn Flyspell on if it is off, or off if it is on.  When turning on, it uses `flyspell-on-for-buffer-type' so code-vs-text is handled appropriately."
-    (interactive)
-    (if (symbol-value flyspell-mode)
-  	  (progn ; flyspell is on, turn it off
-  	    (message "Flyspell off")
-  	    (flyspell-mode -1))
-  	  ; else - flyspell is off, turn it on
-  	  (flyspell-on-for-buffer-type)))
-
-  (global-set-key (kbd "C-c f") 'flyspell-toggle )
-
-  (add-hook 'find-file-hook 'flyspell-on-for-buffer-type)
-
-#+end_src
-
 ** Major Mode Packages
 
 #+begin_src emacs-lisp
@@ -274,8 +279,7 @@ Wiki]].
   
   (use-package flymake-collection)
 
-  (use-package flymake-puppet
-    :init (add-hook puppet-mode-hook 'flymake-puppet-load))
+  (use-package flymake-puppet)
 
 #+end_src
 
@@ -289,8 +293,24 @@ course a shell is helpful.
   (use-package eshell-toggle
     :custom
     (eshell-toggle-size-fraction 3)
-    (eshell-toggle-find-project-root-package 'project)
+;;    (eshell-toggle-find-project-root-package 'project)
     :bind
     ("<f7>" . eshell-toggle))
+
+#+end_src
+
+** Org
+
+#+begin_src emacs-lisp
+
+  (require 'org-tempo)
+  (setq org-support-shift-select t)
+  (setq org-replace-disputed-keys t)
+  (setq org-ellipsis "▼")
+  (setq org-support-shift-select t)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . nil)
+     (shell . t)))
 
 #+end_src
