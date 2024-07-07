@@ -15,7 +15,7 @@ will require working installations of:
 
   - git
   - puppet-lint
-  - ispell
+  - hunspell
 
 * Bootstrap
 ** straight.el
@@ -110,6 +110,7 @@ and add a git gutter.
 
   ;; use a git gutter
   (use-package git-gutter
+    :diminish
     :init (global-git-gutter-mode +1))
 
 #+end_src
@@ -198,7 +199,9 @@ readability and usability of the text UI. Critical for a productive environment.
     :bind ("C-c m" . 'mc/edit-lines))
 
   (use-package magit)
-    
+
+  (use-package forge
+  :after magit)
 
 #+end_src
 
@@ -255,6 +258,23 @@ functions are the core enablers of productivity.
 
 The true essense of Emacs is the wide community of computing enthusiasts who
 extend its functionality.
+
+** Flyspell
+
+For propper spelling.
+
+#+begin_src emacs-lisp
+
+  (use-package flyspell
+  :diminish
+  :custom
+  (setq ispell-program-name "hunspell")
+  (setq ispell-really-hunspell t)
+  (add-hook 'text-mode-hook 'flyspell-mode)
+  (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+  (global-set-key (kbd "<f6>") 'ispell-word))
+
+#+end_src
 
 ** Major Mode Packages
 
@@ -314,3 +334,4 @@ course a shell is helpful.
      (shell . t)))
 
 #+end_src
+
