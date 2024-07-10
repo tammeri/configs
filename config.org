@@ -14,8 +14,11 @@ In addition to a standard release of Emacs, full functionality of this config
 will require working installations of:
 
   - git
+  - github authtoken
   - puppet-lint
   - hunspell
+  - gpg
+  - sqlite-devel
 
 * Bootstrap
 ** straight.el
@@ -198,11 +201,6 @@ readability and usability of the text UI. Critical for a productive environment.
   (use-package multiple-cursors
     :bind ("C-c m" . 'mc/edit-lines))
 
-  (use-package magit)
-
-  (use-package forge
-  :after magit)
-
 #+end_src
 
 * Functions and Keys
@@ -244,7 +242,7 @@ functions are the core enablers of productivity.
      ("M-<down>" . forward-paragraph)
      ("M-<up>" . backward-paragraph)
      ("<f8>" .  save-buffer)
-     ("<f9>" .  switch-to-buffer)
+     ("<f9>" .  project-switch-to-buffer)
      ("<f10>" . other-window)
      ("C-u" . ti/kill-beginning-of-line)
      ("C-x k" . ti/quit-window))
@@ -303,26 +301,11 @@ For propper spelling.
 
 #+end_src
 
-** Eshell
-
-While many system commands are available through Emacs bindings, sometimes of
-course a shell is helpful.
-
-#+begin_src emacs-lisp
-
-  (use-package eshell-toggle
-    :custom
-    (eshell-toggle-size-fraction 3)
-;;    (eshell-toggle-find-project-root-package 'project)
-    :bind
-    ("<f7>" . eshell-toggle))
-
-#+end_src
-
 ** Org
 
 #+begin_src emacs-lisp
 
+  ;; basic setup
   (require 'org-tempo)
   (setq org-support-shift-select t)
   (setq org-replace-disputed-keys t)
@@ -333,5 +316,42 @@ course a shell is helpful.
    '((emacs-lisp . nil)
      (shell . t)))
 
+  ;; shortcut for creating headers
+   (add-to-list 'org-structure-template-alist
+             '("hdr" . (lambda ()
+                         (concat "#+TITLE: Your Title\n"
+                                 "#+AUTHOR: Author Name\n"
+                                 "#+DATE: " (format-time-string "%Y-%m-%d") "\n"))))
+
 #+end_src
 
+** Magit
+
+#+begin_src emacs-lisp
+
+  (use-package magit
+    :bind ("<f7>" . magit))
+
+  (use-package sqlite3)
+
+  (use-package forge
+  :after magit
+  :custom
+  (setq auth-sources '("~/.authinfo")))
+
+
+#+end_src
+
+** ChatGPT
+
+One of the best tools for modern IT work is a helpful AI companion. They're not
+perfect in terms of accuracy, but I find their accuracy mirrors what I can find
+on the web. Its no substitute for experiential knowledge or what's contained in
+technical books.
+
+#+begin_src emacs-lisp
+
+;  (use-package chatgpt
+;  :straight (chatgpt :type git :host github :repo "emacs-openai/chatgpt"))
+
+#+end_src
