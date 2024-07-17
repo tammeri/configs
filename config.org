@@ -14,11 +14,8 @@ In addition to a standard release of Emacs, full functionality of this config
 will require working installations of:
 
   - git
-  - github authtoken
   - puppet-lint
   - hunspell
-  - gpg
-  - sqlite-devel
 
 * Bootstrap
 ** straight.el
@@ -242,7 +239,7 @@ functions are the core enablers of productivity.
      ("M-<down>" . forward-paragraph)
      ("M-<up>" . backward-paragraph)
      ("<f8>" .  save-buffer)
-     ("<f9>" .  project-switch-to-buffer)
+     ("<f9>" .  project-switch-project)
      ("<f10>" . other-window)
      ("C-u" . ti/kill-beginning-of-line)
      ("C-x k" . ti/quit-window))
@@ -282,8 +279,7 @@ For propper spelling.
     :init
     (add-to-list 'auto-mode-alist
   	     '("\\.\\(?:md\\|markdown\\|mkd\\|mdown\\|mkdn\\|mdwn\\)\\'" . gfm-mode))
-    (add-hook 'gfm-mode-hook
-  	  (setq markdown-list-indent-width 2)))
+)
 
   (use-package apache-mode)
 
@@ -316,29 +312,12 @@ For propper spelling.
    '((emacs-lisp . nil)
      (shell . t)))
 
-  ;; shortcut for creating headers
-   (add-to-list 'org-structure-template-alist
-             '("hdr" . (lambda ()
-                         (concat "#+TITLE: Your Title\n"
-                                 "#+AUTHOR: Author Name\n"
-                                 "#+DATE: " (format-time-string "%Y-%m-%d") "\n"))))
-
-#+end_src
-
-** Magit
-
-#+begin_src emacs-lisp
-
-  (use-package magit
-    :bind ("<f7>" . magit))
-
-  (use-package sqlite3)
-
-  (use-package forge
-  :after magit
-  :custom
-  (setq auth-sources '("~/.authinfo")))
-
+  ;; ;; shortcut for creating headers
+  ;;  (add-to-list 'org-structure-template-alist
+  ;;            '("hdr" . (lambda ()
+  ;;                        (concat "#+TITLE: Your Title\n"
+  ;;                                "#+AUTHOR: Author Name\n"
+  ;;                                "#+DATE: " (format-time-string "%Y-%m-%d") "\n"))))
 
 #+end_src
 

@@ -5,3 +5,6 @@ These are my configurations for different development environments, server
 setups, and personal computing preferences.
 
 Colors used for various terminal emulator themes from the estimable [[https://protesilaos.com][prot]].
+
+Designed to be easily deployable to different systems and not rely too much on
+automated bootstrapping.
