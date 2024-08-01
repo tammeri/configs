@@ -91,7 +91,7 @@ and add a git gutter.
   (if (fboundp 'menu-bar-mode) (menu-bar-mode -1))
 
   ;; use a nice font
-  (add-to-list 'default-frame-alist '(font . "SF Mono-8:weight=medium"))
+  (add-to-list 'default-frame-alist '(font . "SF Mono-9:weight=medium"))
 
   ;; line numbers
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
@@ -319,6 +319,7 @@ emacs
 
   (use-package vterm
     :config
+    (setq vterm-term-environment-variable "xterm-16color")
     ;; Function to hide the mode line
     (defun hide-mode-line ()
       "Hide the mode line in the current buffer."
