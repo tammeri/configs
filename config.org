@@ -69,7 +69,6 @@ This gets called early to structure the Emacs local configuration directory.
     ;; always create a new backup file
     (setq backup-by-copying t))
 
-
 #+end_src
 
 * UI
@@ -147,13 +146,20 @@ on occasion.
 
 ** Theme
 
-Doom themes are a great set of themes with a wide range of faces defined.
+If you're in the Emacs world, hopefully you've come across [[https://protesilaos.com][prot]] and his
+revolutionary Emacs packages. His approach to creating Emacs themes prioritizes
+readability and usability of the text UI. Critical for a productive environment.
 
 #+begin_src emacs-lisp
 
-  (use-package doom-themes
-    :init (load-theme 'doom-earl-grey t))
-  
+  (use-package ef-themes
+    :straight (ef-themes :type git :host github :repo "protesilaos/ef-themes")
+    :ensure
+    :config
+    (setq ef-themes-to-toggle '(ef-day ef-dream))
+    :init
+    (ef-themes-select 'ef-day))
+
 #+end_src
 
 * Usability Enhancements
